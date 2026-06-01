@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Your Account</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #37352f;
+            --border-color: #e9e9e6;
+            --input-bg: #f7f7f5;
+            --primary-color: #2383e2;
+        }
+        body {
+            font-family: 'Pretendard', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 100px 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .auth-card {
+            max-width: 400px;
+            width: 100%;
+        }
+        h1 {
+            font-size: 30px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+        .subtitle {
+            font-size: 14px;
+            color: #787774;
+            margin-bottom: 32px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        input {
+            font-family: inherit;
+            font-size: 15px;
+            padding: 12px 14px;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background-color: var(--input-bg);
+        }
+        input:focus {
+            outline: none;
+            background-color: #fff;
+            border-color: #b3b3b1;
+        }
+        button {
+            font-family: inherit;
+            font-size: 15px;
+            font-weight: 500;
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            box-shadow: 0px 1px 2px rgba(15, 15, 15, 0.05);
+        }
+        button:hover { background-color: #1a6cb8; }
+        .footer-link {
+            margin-top: 20px;
+            font-size: 14px;
+            text-align: center;
+            color: #787774;
+        }
+        .footer-link a { color: var(--primary-color); text-decoration: none; }
+    </style>
+</head>
+<body>
+    <div class="auth-card">
+        <h1>Sign Up</h1>
+        <div class="subtitle">서비스를 시작하기 위해 계정을 생성하세요.</div>
+
+        <div class="form-group">
+            <input type="text" id="signup-username" placeholder="아이디 (Username)">
+            <input type="password" id="signup-password" placeholder="비밀번호 (Password)">
+            <input type="email" id="signup-email" placeholder="이메일 (Email)">
+            <input type="text" id="signup-name" placeholder="이름 (Name)">
+        </div>
+        <button onclick="handleSignUp()">계정 생성하기</button>
+
+        <div class="footer-link">
+            이미 계정이 있으신가요? <a href="/api/user/login/">로그인</a>
+        </div>
+    </div>
+
+    <script>
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+
+        async function handleSignUp() {
+            const data = {
+                username: document.getElementById('signup-username').value,
+                password: document.getElementById('signup-password').value,
+                email: document.getElementById('signup-email').value,
+                name: document.getElementById('signup-name').value
+            };
+
+            if (!data.username || !data.password || !data.email || !data.name) {
+                alert("모든 항목을 채워주세요.");
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/user/signup/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const contentType = response.headers.get("content-type");
+                if (contentType && contentType.indexOf("application/json") !== -1) {
+                    const result = await response.json();
+                    alert(result.message);
+                    if (response.status === 201) {
+                        window.location.href = '/api/user/login/'; // 가입 성공 시 로그인 페이지로 리다이렉트
+                    }
+                } else {
+                    alert(`요청 실패 (Status: ${response.status})`);
+                }
+            } catch (error) {
+                alert("통신 중 문제가 발생했습니다.");
+            }
+        }
+    </script>
+</body>
+</html>
