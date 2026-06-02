@@ -23,10 +23,13 @@ load_dotenv(os.path.join(BASE_DIR, '.env'))
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-j!ufu5$l_95b6yo&jn0-el9&nef8aployal-7ddet5*!p07-i5'
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
 
-ALLOWED_HOSTS = []
+# 🚀 [배포 설정 1] 서버에서는 무조건 디버그 모드를 꺼야 합니다!
+DEBUG = False
+
+# 🚀 [배포 설정 2] 외부 도메인 접속을 허용합니다.
+# 배포 후 ['유저아이디.pythonanywhere.com'] 으로 바꾸는 것을 권장합니다.
+ALLOWED_HOSTS = ['*']
 
 
 # Application definition
@@ -119,3 +122,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+
+# 🚀 [배포 설정 3] 서버에서 CSS/JS 파일을 한 곳으로 모으기 위한 경로 설정
+STATIC_ROOT = os.path.join(BASE_DIR, 'static')
