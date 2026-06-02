@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Planner & Time Budget</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #37352f;
+            --border-color: #e9e9e6;
+            --input-bg: #f7f7f5;
+            --primary-color: #2383e2;
+            --danger-color: #eb5757;
+            --success-color: #0f7b6c;
+            --nav-bg: #f1f1ef;
+            --warning-color: #dfab01;
+        }
+        body { font-family: 'Pretendard', sans-serif; color: var(--text-color); background-color: var(--bg-color); margin:0; padding: 20px 40px; }
+        .workspace { max-width: 1000px; margin: 0 auto; }
+
+        /* 📡 상단 통합 내비게이션 헤더 바 */
+        .top-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--nav-bg); padding: 12px 24px; border-radius: 8px; margin-bottom: 24px;
+        }
+        .nav-logo { font-weight: 700; font-size: 16px; color: #111; }
+        .nav-links { display: flex; gap: 12px; }
+        .nav-btn {
+            text-decoration: none; font-size: 13px; font-weight: 500; color: #555;
+            padding: 6px 12px; border-radius: 4px; background: #fff; border: 1px solid var(--border-color);
+        }
+        .nav-btn:hover { background: var(--input-bg); color: #111; }
+
+        /* 🔋 상단 게이지 바: 하루 24시간 한도 표시기 */
+        .time-budget-card {
+            background: var(--input-bg); border: 1px solid var(--border-color);
+            border-radius: 6px; padding: 20px; margin-bottom: 24px;
+        }
+        .progress-container {
+            background: #e9e9e6; border-radius: 4px; height: 16px; width: 100%; margin-top: 10px; overflow: hidden;
+        }
+        .progress-bar {
+            background: var(--primary-color); height: 100%; width: 0%; transition: width 0.3s, background-color 0.3s;
+        }
+
+        .split-view { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; }
+        .panel { border: 1px solid var(--border-color); border-radius: 8px; padding: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+
+        .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+        label { font-size: 12px; font-weight: 600; color: #787774; margin-bottom: -4px; }
+        input, textarea, select { font-family: inherit; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--input-bg); }
+        button.main-btn { font-family: inherit; padding: 12px; border: none; border-radius: 4px; background: var(--primary-color); color: white; cursor: pointer; font-weight: 600; margin-top: 6px; }
+
+        .plan-item {
+            border: 1px solid var(--border-color); border-radius: 4px; padding: 12px; margin-bottom: 10px;
+            background: #fff; display: flex; justify-content: space-between; align-items: center;
+        }
+        .badge { font-size: 11px; padding: 2px 6px; border-radius: 3px; font-weight: 600; background: #e3e2e0; }
+        .badge.time { background: #e2f2ff; color: var(--primary-color); }
+
+        .action-area { display: flex; align-items: center; gap: 8px; }
+        .status-selectors button { padding: 4px 8px; font-size: 11px; margin-left: 4px; background: #fff; color: var(--text-color); border: 1px solid var(--border-color); border-radius: 4px; cursor: pointer; }
+        .status-selectors button.success-btn:hover { background: #e6f4ea; color: var(--success-color); border-color: var(--success-color); }
+        .status-selectors button.fail-btn:hover { background: #fce8e6; color: var(--danger-color); border-color: var(--danger-color); }
+
+        /* 🔓 공유 상태 버튼 디자인 스펙 */
+        .share-toggle-btn {
+            font-family: inherit; font-size: 11px; font-weight: 600; padding: 4px 8px; border-radius: 4px; border: 1px solid var(--border-color); cursor: pointer; background: #fff;
+        }
+        .share-toggle-btn.active { background: #fff9e6; color: var(--warning-color); border-color: #fade7a; }
+    </style>
+</head>
+<body>
+
+<div class="workspace">
+    <div class="top-nav">
+        <div class="nav-logo">🚀 AI 소셜 스케줄러</div>
+        <div class="nav-links">
+            <a href="/api/user/main/" class="nav-btn">🏠 홈 워크스페이스</a>
+            <a href="/api/post/board/" class="nav-btn">📮 공유 게시판 피드</a>
+            <a href="/api/friend/view/" class="nav-btn">🤝 친구 네트워크</a>
+        </div>
+    </div>
+
+    <div class="time-budget-card">
+        <div style="display: flex; justify-content: space-between; font-weight: 600;">
+            <span>📈 오늘 계획 시간 가용성 (Time Budget)</span>
+            <span id="time-text">0 / 24 시간 할당됨</span>
+        </div>
+        <div class="progress-container">
+            <div class="progress-bar" id="time-progress"></div>
+        </div>
+    </div>
+
+    <div class="split-view">
+        <div class="panel">
+            <h3 style="margin-top:0;">📋 해야 하는 목록 추가 창</h3>
+            <div class="input-group">
+                <label>분류</label>
+                <input type="text" id="input-category" placeholder="큰 범위 (예: 캡스톤 소융, DB)">
+
+                <label>세부 할 일</label>
+                <input type="text" id="input-title" placeholder="세부 할 일 (예: 코딩, 기말 준비)">
+
+                <label>배치 날짜 및 달력 데드라인</label>
+                <input type="date" id="input-date">
+
+                <label>상세 내용</label>
+                <textarea id="input-content" rows="3" placeholder="내용을 상세히 적으면 AI가 소요 시간을 계산합니다."></textarea>
+
+                <button class="main-btn" onclick="submitPlan()">목록에 추가하기</button>
+            </div>
+        </div>
+
+        <div class="panel" style="background-color: #fafaf9;">
+            <h3 style="margin-top:0;">🎯 계획 타임라인 배치</h3>
+            <div id="plan-timeline-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let currentTotalHours = 0;
+
+    document.getElementById('input-date').value = new Date().toISOString().substring(0, 10);
+    document.addEventListener("DOMContentLoaded", loadExistingPlans);
+
+    function getAuthHeader() {
+        const token = localStorage.getItem('access_token');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
+
+    async function loadExistingPlans() {
+        try {
+            const response = await fetch('/api/plan/list/', {
+                method: 'GET',
+                headers: { ...getAuthHeader() }
+            });
+            const data = await response.json();
+            const listZone = document.getElementById('plan-timeline-list');
+            listZone.innerHTML = '';
+
+            let totalHoursCalculated = 0;
+
+            if (data.grouped_plans) {
+                Object.keys(data.grouped_plans).forEach(category => {
+                    data.grouped_plans[category].forEach(plan => {
+                        totalHoursCalculated += plan.ai_duration_hours;
+
+                        // 💡 공유 데이터 유무에 따른 동적 버튼 상태 분기 처리
+                        const shareLabel = plan.is_shared ? "공유 중 🔓" : "나만보기 🔒";
+                        const shareClass = plan.is_shared ? "share-toggle-btn active" : "share-toggle-btn";
+
+                        const item = document.createElement('div');
+                        item.className = 'plan-item';
+                        item.id = `plan-${plan.id}`;
+                        item.innerHTML = `
+                            <div>
+                                <span class="badge">[${category}]</span>
+                                <strong style="margin-left:6px;">${plan.title}</strong>
+                                <span class="badge time">⏳ ${plan.ai_duration_hours}h</span>
+                            </div>
+                            <div class="action-area">
+                                <button class="${shareClass}" onclick="toggleShare(${plan.id}, '${shareLabel}')">${shareLabel}</button>
+                                <div class="status-selectors">
+                                    <button class="success-btn" onclick="triggerComplete(${plan.id}, 'SUCCESS')">성공</button>
+                                    <button class="fail-btn" onclick="triggerComplete(${plan.id}, 'FAIL')">실패</button>
+                                </div>
+                            </div>
+                        `;
+                        listZone.appendChild(item);
+                    });
+                });
+            }
+
+            updateProgressBar(totalHoursCalculated);
+        } catch(e) {
+            console.error("기존 목록 로딩 실패", e);
+        }
+    }
+
+    // 🔒 [추가] 게시판 공유 취소 / 다시 공유 실시간 전환 스크립트 엔진
+    async function toggleShare(targetId, currentLabel) {
+        try {
+            const response = await fetch('/api/post/share/toggle/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader()
+                },
+                body: JSON.stringify({
+                    target_id: targetId,
+                    target_type: "ACTIVE" // 대시보드에 떠 있는 계획은 ACTIVE 데이터셋입니다.
+                })
+            });
+            const result = await response.json();
+            alert(result.message);
+
+            if (response.status === 200) {
+                loadExistingPlans(); // 카드 UI 상태 갱신 리드로잉
+            }
+        } catch(e) {
+            alert("공유 상태 전환에 실패했습니다.");
+        }
+    }
+
+    function updateProgressBar(newHours) {
+        currentTotalHours = newHours;
+        const progressBar = document.getElementById('time-progress');
+        const timeText = document.getElementById('time-text');
+
+        const percent = (currentTotalHours / 24) * 100;
+        progressBar.style.width = `${Math.min(percent, 100)}%`;
+        timeText.innerText = `${currentTotalHours} / 24 시간 사용 중 (남은 시간: ${24 - currentTotalHours}시간)`;
+
+        if (currentTotalHours >= 24) {
+            progressBar.style.backgroundColor = "var(--danger-color)";
+        } else {
+            progressBar.style.backgroundColor = "var(--primary-color)";
+        }
+    }
+
+    async function submitPlan() {
+        const category = document.getElementById('input-category').value;
+        const title = document.getElementById('input-title').value;
+        const content = document.getElementById('input-content').value;
+        const assigned_date = document.getElementById('input-date').value;
+
+        if(!category || !title) {
+            alert("카테고리와 할 일 이름은 필수입니다.");
+            return;
+        }
+
+        const data = { category, title, content, assigned_date };
+
+        try {
+            const response = await fetch('/api/plan/create/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader()
+                },
+                body: JSON.stringify(data)
+            });
+
+            const result = await response.json();
+
+            if (response.status === 400) {
+                alert(`[등록 거부] ${result.message}`);
+                return;
+            }
+
+            alert(result.message);
+
+            if (response.status === 201) {
+                loadExistingPlans();
+                document.getElementById('input-title').value = '';
+                document.getElementById('input-content').value = '';
+            }
+        } catch (error) {
+            alert("통신 실패");
+        }
+    }
+
+    async function triggerComplete(planId, statusType) {
+        try {
+            const response = await fetch(`/api/plan/complete/${planId}/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader()
+                },
+                body: JSON.stringify({ result: statusType })
+            });
+            const result = await response.json();
+            alert(`[${statusType} 처리 완료]`);
+
+            if (response.status === 200) {
+                loadExistingPlans();
+            }
+        } catch(e) { alert("처리 실패"); }
+    }
+</script>
+</body>
+</html>

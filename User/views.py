@@ -9,7 +9,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 
 
-
+class MainWorkspaceView(TemplateView):
+    template_name = 'User/main.html'
 # ➊ 회원가입 View
 @method_decorator(csrf_exempt, name='dispatch')
 class SignUpView(TemplateView):
@@ -87,4 +88,6 @@ class LoginView(TemplateView):
 
         except json.JSONDecodeError:
             return JsonResponse({"message": "잘못된 JSON 형식입니다."}, status=400)
+# User/views.py 맨 아래에 추가
+
 

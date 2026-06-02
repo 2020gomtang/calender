@@ -112,20 +112,7 @@
     </div>
 
     <script>
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
+        // (getCookie 함수는 그대로 유지)
 
         async function handleLogin() {
             const data = {
@@ -142,8 +129,7 @@
                 const response = await fetch('/api/user/login/', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': getCookie('csrftoken')
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(data)
                 });
@@ -154,9 +140,19 @@
                     alert(result.message);
 
                     if (response.status === 200) {
+                        // 1. 디버깅용 토큰 박스 출력
                         document.getElementById('token-box').style.display = 'block';
                         document.getElementById('token-text').innerText = `Bearer ${result.access_token}`;
-                        localStorage.setItem('user_token', result.access_token);
+
+                        // 💡 2. 다른 페이지들과 Key 이름을 백퍼센트 일치시켜 저장합니다!
+                        localStorage.setItem('access_token', result.access_token);
+                        // 유저의 식별 이름을 대시보드에 띄워주기 위해 함께 저장합니다.
+                        localStorage.setItem('username', result.user.username);
+
+                        // 💡 3. 핵심: 로그인이 완수되면 자동으로 홈 워크스페이스 대시보드로 강제 라우팅(이동)!
+                        setTimeout(() => {
+                            location.href = '/api/user/main/';
+                        }, 1000); // 토큰이 발급된 모습을 1초간 보여준 뒤 시원하게 워프합니다.
                     }
                 } else {
                     alert(`로그인 실패 (Status: ${response.status})`);

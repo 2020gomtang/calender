@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workspace Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+    <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #37352f;
+            --border-color: #e9e9e6;
+            --input-bg: #f7f7f5;
+            --primary-color: #2383e2;
+            --card-shadow: 0px 1px 3px rgba(15, 15, 15, 0.05);
+            --nav-bg: #f1f1ef;
+        }
+
+        body {
+            font-family: 'Pretendard', sans-serif;
+            color: var(--text-color);
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px 40px;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        /* 📡 상단 통합 내비게이션 바 */
+        .top-nav {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--nav-bg); padding: 12px 24px; border-radius: 8px; margin-bottom: 24px;
+        }
+        .nav-left { display: flex; align-items: center; gap: 20px; }
+        .nav-logo { font-weight: 700; font-size: 16px; color: #111; }
+        .nav-links { display: flex; gap: 12px; }
+        .nav-btn {
+            text-decoration: none; font-size: 13px; font-weight: 500; color: #555;
+            padding: 6px 12px; border-radius: 4px; background: #fff; border: 1px solid var(--border-color);
+        }
+        .nav-btn:hover { background: var(--input-bg); color: #111; }
+
+        /* 상단 헤더 영역 */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 32px;
+            margin-top: 10px;
+        }
+
+        h1 { font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.5px; }
+
+        .auth-btn-group button, .auth-btn-group a {
+            font-family: inherit; font-size: 13px; padding: 6px 12px;
+            border-radius: 4px; border: 1px solid var(--border-color);
+            cursor: pointer; background: #fff; margin-left: 6px; text-decoration: none; color: var(--text-color);
+            display: inline-block;
+        }
+        .auth-btn-group .login-btn { background-color: var(--primary-color); color: white; border: none; }
+        .auth-btn-group .login-btn:hover { background-color: #1a6cb8; }
+
+        /* 📅 캘린더 컴포넌트 뼈대 */
+        .calendar-section {
+            background: var(--input-bg);
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 32px;
+            border: 1px solid var(--border-color);
+        }
+
+        .calendar-header {
+            font-size: 18px; font-weight: 700; margin-bottom: 16px;
+            display: flex; align-items: center; gap: 8px;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+
+        .calendar-day-label { font-size: 12px; font-weight: 600; color: #787774; padding-bottom: 8px; }
+
+        .calendar-cell {
+            background: #fff; border: 1px solid var(--border-color);
+            border-radius: 4px; min-height: 60px; padding: 6px;
+            font-size: 13px; font-weight: 500; text-align: left;
+            cursor: pointer; transition: background 0.2s;
+        }
+        .calendar-cell:hover { background: #f1f1ef; }
+
+        /* 📋 동적 섹션 (로그인 여부에 따라 보임/안보임 제어) */
+        .workspace-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+        }
+
+        /* 비로그인 시 아래에 깔리는 목록/드래그 영역 */
+        .public-list-box {
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: var(--card-shadow);
+        }
+
+        h2 { font-size: 16px; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #787774; }
+
+        /* 드래그 앤 드롭 타겟 존 시각화 */
+        .drag-placeholder-zone {
+            border: 2px dashed #d3d3d0;
+            border-radius: 6px;
+            padding: 40px 20px;
+            text-align: center;
+            font-size: 13px;
+            color: #b3b3b1;
+            background-color: #fafaf9;
+            margin-top: 12px;
+        }
+
+        .empty-item-text {
+            font-size: 14px; color: #b3b3b1; text-align: center; padding: 24px 0;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="top-nav">
+            <div class="nav-left">
+                <div class="nav-logo">🚀 AI 소셜 스케줄러</div>
+                <div class="nav-links">
+                    <a href="/api/post/board/" class="nav-btn">📮 공유 게시판 피드</a>
+                    <a href="/api/friend/view/" class="nav-btn">🤝 친구 네트워크</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="header">
+            <div>
+                <h1 id="workspace-title">🗓️ Public Scheduler</h1>
+                <div style="font-size: 13px; color: #787774; margin-top: 4px;" id="user-status-msg">로그인하시면 개인 편집 모드로 전환됩니다.</div>
+            </div>
+            <div class="auth-btn-group" id="auth-header-block"></div>
+        </div>
+
+        <div class="calendar-section">
+            <div class="calendar-header">
+                <span>2026년 6월 (June)</span>
+            </div>
+            <div class="calendar-grid" id="calendar-body">
+                <div class="calendar-day-label">일</div><div class="calendar-day-label">월</div><div class="calendar-day-label">화</div>
+                <div class="calendar-day-label">수</div><div class="calendar-day-label">목</div><div class="calendar-day-label">금</div><div class="calendar-day-label">토</div>
+
+                <div class="calendar-cell" onclick="handleDateClick(1)">1</div>
+                <div class="calendar-cell" onclick="handleDateClick(2)">2</div>
+                <div class="calendar-cell" onclick="handleDateClick(3)">3</div>
+                <div class="calendar-cell" onclick="handleDateClick(4)">4</div>
+                <div class="calendar-cell" onclick="handleDateClick(5)">5</div>
+                <div class="calendar-cell" onclick="handleDateClick(6)">6</div>
+                <div class="calendar-cell" onclick="handleDateClick(7)">7</div>
+            </div>
+        </div>
+
+        <div id="conditional-bottom-layout">
+            <div class="workspace-grid">
+                <div class="public-list-box">
+                    <h2>📋 해야 하는 목록 (비어있음)</h2>
+                    <div class="empty-item-text">로그인 후 카테고리별 계획 항목이 로드됩니다.</div>
+                </div>
+                <div class="public-list-box">
+                    <h2>🎯 계획 짜기 (드래그 구역)</h2>
+                    <div class="drag-placeholder-zone">
+                        목록의 할 일을 이 박스로 드래그하여 배치하세요
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const token = localStorage.getItem('access_token');
+            const username = localStorage.getItem('username') || "사용자";
+            const headerBlock = document.getElementById('auth-header-block');
+            const bottomLayout = document.getElementById('conditional-bottom-layout');
+            const titleText = document.getElementById('workspace-title');
+            const statusMsg = document.getElementById('user-status-msg');
+
+            if (!token) {
+                // 🔹 [CASE A] 로그인을 안 한 상태
+                titleText.innerText = "🗓️ Public Scheduler";
+                statusMsg.innerText = "로그인하시면 개인 편집 모드로 전환됩니다.";
+                headerBlock.innerHTML = `
+                    <a href="/api/user/signup/">회원가입</a>
+                    <a class="login-btn" href="/api/user/login/">로그인</a>
+                `;
+            } else {
+                // 🔹 [CASE B] 로그인을 완료한 상태
+                titleText.innerText = `🚀 ${username}님의 워크스페이스`;
+                statusMsg.innerText = "날짜를 클릭하여 소요 시간 연산 및 스케줄러 상세 편집 페이지로 진입하세요.";
+                headerBlock.innerHTML = `
+                    <button style="color:#eb5757; border-color:#ffe6e6; cursor:pointer;" onclick="handleLogout()">로그아웃</button>
+                `;
+
+                // 로그인 완료 시 하단 비어있는 공공 레이아웃 차단 접기
+                bottomLayout.style.display = "none";
+            }
+        });
+
+        function handleDateClick(day) {
+            const token = localStorage.getItem('access_token');
+            if (!token) {
+                alert("캘린더 상세 계획 수립 기능은 로그인 후 이용 가능합니다.");
+                location.href = '/api/user/login/';
+                return;
+            }
+
+            alert(`2026년 6월 ${day}일을 선택하셨습니다. 계획 수립 대시보드로 이동합니다.`);
+            location.href = '/api/plan/detail/';
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('username');
+            alert("로그아웃 되었습니다.");
+            location.reload();
+        }
+    </script>
+</body>
+</html>

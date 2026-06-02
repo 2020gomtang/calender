@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Post 독립 공유 게시판</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css">
+    <style>
+        :root {
+            --bg-color: #fafafa;
+            --card-bg: #ffffff;
+            --text-color: #2b2b2b;
+            --border-color: #e5e5e5;
+            --primary-color: #4a90e2;
+            --success-color: #2ecc71;
+            --danger-color: #e74c3c;
+        }
+        body { font-family: 'Pretendard', sans-serif; background-color: var(--bg-color); color: var(--text-color); padding: 40px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .header { margin-bottom: 30px; border-bottom: 2px solid var(--border-color); padding-bottom: 15px; }
+        .post-card { background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 8px rgba(0,0,0,0.02); }
+        .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .user-info { font-weight: 700; color: #333; }
+        .status-badge { font-size: 11px; padding: 4px 8px; border-radius: 20px; color: #fff; font-weight: bold; }
+        .status-badge.PENDING { background: #f39c12; }
+        .status-badge.SUCCESS { background: var(--success-color); }
+        .status-badge.FAIL { background: var(--danger-color); }
+
+        .post-body { font-size: 15px; margin-bottom: 15px; font-weight: 500; }
+
+        /* 💬 댓글 폼 리스트 */
+        .comment-wrapper { background: #f9f9f9; border-radius: 6px; padding: 12px; margin-top: 15px; }
+        .comment-line { font-size: 13px; margin-bottom: 6px; border-bottom: 1px solid #f1f1f1; padding-bottom: 4px; }
+        .comment-user { font-weight: bold; color: #555; }
+        .input-row { display: flex; gap: 6px; margin-top: 10px; }
+        .comment-input { flex: 1; padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; font-size: 13px; }
+        .submit-btn { background: var(--primary-color); border: none; color: #fff; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 12px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h2>📮 피드 게시판 (Post 공간)</h2>
+        <p style="font-size:12px; color:#888; margin:0;">계획 앱 데이터와 친구 시스템이 연동된 공유 타임라인 공간입니다.</p>
+    </div>
+
+    <div id="post-feed-container"></div>
+</div>
+
+<script>
+    document.addEventListener("DOMContentLoaded", loadPostBoard);
+
+    async function loadPostBoard() {
+        try {
+            // 💡 Post 전용 엔드포인트 호출
+            const response = await fetch('/api/post/board/', { headers: { 'Accept': 'application/json' } });
+            const data = await response.json();
+            const container = document.getElementById('post-feed-container');
+            container.innerHTML = '';
+
+            data.feed.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'post-card';
+
+                let commentsListHtml = '';
+                item.comments.forEach(c => {
+                    commentsListHtml += `
+                        <div class="comment-line">
+                            <span class="comment-user">${c.username}:</span> ${c.content}
+                            <span style="font-size:10px; color:#aaa; float:right;">${c.created_at}</span>
+                        </div>
+                    `;
+                });
+
+                card.innerHTML = `
+                    <div class="card-top">
+                        <span class="user-info">👤 ${item.user} ${item.is_me ? '<span style="color:#4a90e2; font-size:11px;">(나)</span>' : ''}</span>
+                        <span class="status-badge ${item.status}">${item.status}</span>
+                    </div>
+                    <div class="post-body">
+                        <span style="color:#aaa; font-size:13px;">[${item.category}]</span>
+                        <strong>${item.title}</strong>
+                    </div>
+                    <div style="font-size:12px; color:#666; margin-bottom:10px;">${item.content}</div>
+                    <div style="font-size:11px; color:#bbb; text-align:right;">날짜: ${item.date}</div>
+
+                    <div class="comment-wrapper">
+                        <div id="box-${item.type}-${item.id}">
+                            ${commentsListHtml ? commentsListHtml : '<p style="font-size:11px; color:#aaa; margin:0;">댓글이 없습니다.</p>'}
+                        </div>
+                        <div class="input-row">
+                            <input type="text" class="comment-input" id="in-${item.type}-${item.id}" placeholder="댓글을 입력하세요...">
+                            <button class="submit-btn" onclick="addComment(${item.id}, '${item.type}')">보내기</button>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        } catch(e) { alert("게시판 로드 실패"); }
+    }
+
+    async function addComment(id, type) {
+        const input = document.getElementById(`in-${type}-${id}`);
+        if(!input.value.trim()) return;
+
+        try {
+            const response = await fetch('/api/post/comment/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ target_id: id, target_type: type, content: input.value })
+            });
+            if(response.status === 201) {
+                input.value = '';
+                loadPostBoard(); // 리프레시
+            }
+        } catch(e) { alert("통신 실패"); }
+    }
+</script>
+</body>
+</html>
