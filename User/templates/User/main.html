@@ -96,14 +96,13 @@
         }
         .calendar-cell:hover { background: #f1f1ef; }
 
-        /* 📋 동적 섹션 (로그인 여부에 따라 보임/안보임 제어) */
+        /* 📋 동적 섹션 */
         .workspace-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 24px;
         }
 
-        /* 비로그인 시 아래에 깔리는 목록/드래그 영역 */
         .public-list-box {
             border: 1px solid var(--border-color);
             border-radius: 8px;
@@ -113,7 +112,6 @@
 
         h2 { font-size: 16px; font-weight: 600; margin-top: 0; margin-bottom: 12px; color: #787774; }
 
-        /* 드래그 앤 드롭 타겟 존 시각화 */
         .drag-placeholder-zone {
             border: 2px dashed #d3d3d0;
             border-radius: 6px;
@@ -138,7 +136,7 @@
                 <div class="nav-logo">🚀 AI 소셜 스케줄러</div>
                 <div class="nav-links">
                     <a href="/api/post/board/" class="nav-btn">📮 공유 게시판 피드</a>
-                    <a href="/api/friend/view/" class="nav-btn">🤝 친구 네트워크</a>
+                    <a href="/api/user/friend/" class="nav-btn">🤝 친구 네트워크</a>
                 </div>
             </div>
         </div>
@@ -195,7 +193,6 @@
             const statusMsg = document.getElementById('user-status-msg');
 
             if (!token) {
-                // 🔹 [CASE A] 로그인을 안 한 상태
                 titleText.innerText = "🗓️ Public Scheduler";
                 statusMsg.innerText = "로그인하시면 개인 편집 모드로 전환됩니다.";
                 headerBlock.innerHTML = `
@@ -203,14 +200,11 @@
                     <a class="login-btn" href="/api/user/login/">로그인</a>
                 `;
             } else {
-                // 🔹 [CASE B] 로그인을 완료한 상태
                 titleText.innerText = `🚀 ${username}님의 워크스페이스`;
                 statusMsg.innerText = "날짜를 클릭하여 소요 시간 연산 및 스케줄러 상세 편집 페이지로 진입하세요.";
                 headerBlock.innerHTML = `
                     <button style="color:#eb5757; border-color:#ffe6e6; cursor:pointer;" onclick="handleLogout()">로그아웃</button>
                 `;
-
-                // 로그인 완료 시 하단 비어있는 공공 레이아웃 차단 접기
                 bottomLayout.style.display = "none";
             }
         });

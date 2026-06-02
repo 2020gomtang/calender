@@ -9,7 +9,12 @@ class Plan(models.Model):
         SUCCESS = 'SUCCESS', '성공'
         FAIL = 'FAIL', '실패'
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='plans')
+    user = models.ForeignKey(
+        'User.User',  # 혹은 이미 임포트한 User 모델 객체
+        on_delete=models.CASCADE,
+        to_field='username',  # 🚀 바로 이 녀석이 마법의 치트키입니다!
+        db_column='user_username'  # 데이터베이스 컬럼명도 직관적으로 매핑되도록 지정
+    )
     category = models.CharField(max_length=100, verbose_name="큰 분류 (카테고리)", default="기타")
     title = models.CharField(max_length=255, verbose_name="계획 이름")
     content = models.TextField(blank=True, null=True, verbose_name="계획 내용")
@@ -27,6 +32,10 @@ class Plan(models.Model):
         default=StatusChoices.PENDING,
         verbose_name="상태"
     )
+
+    # 🌟 [긴급 장착] 이 필드가 누락되어 토글 저장이 안 됐던 겁니다!
+    is_shared = models.BooleanField(default=False, verbose_name="게시판 공유 여부")
+
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -42,8 +51,10 @@ class PlanHistory(models.Model):
 
     # 어떤 유저의 과거 기록인지 식별
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
+        'User.User',  # 혹은 settings.AUTH_USER_MODEL
         on_delete=models.CASCADE,
+        to_field='username',  # ⚡ 마법의 치트키 재장착
+        db_column='user_username',  # 컬럼 규격 일치
         related_name='plan_histories',
         verbose_name="작성자"
     )
@@ -62,10 +73,13 @@ class PlanHistory(models.Model):
         verbose_name="성공 여부"
     )
 
+    # 🌟 [긴급 장착] 완료 보관함으로 넘어갈 때도 공유 상태가 유지되도록 필드 추가!
+    is_shared = models.BooleanField(default=False, verbose_name="게시판 공유 여부")
+
     class Meta:
         db_table = 'plan_histories'
-        # 관리를 편하게 하기 위해 최신 기록 순으로 정렬 설정
         ordering = ['-completed_at']
+
 
     def __str__(self):
         return f"[{self.completed_at}] ({self.get_result_display()}) {self.title}"

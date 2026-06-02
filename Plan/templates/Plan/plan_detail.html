@@ -80,7 +80,7 @@
         <div class="nav-links">
             <a href="/api/user/main/" class="nav-btn">🏠 홈 워크스페이스</a>
             <a href="/api/post/board/" class="nav-btn">📮 공유 게시판 피드</a>
-            <a href="/api/friend/view/" class="nav-btn">🤝 친구 네트워크</a>
+            <a href="/api/user/friend/" class="nav-btn">🤝 친구 네트워크</a>
         </div>
     </div>
 
@@ -149,7 +149,7 @@
                     data.grouped_plans[category].forEach(plan => {
                         totalHoursCalculated += plan.ai_duration_hours;
 
-                        // 💡 공유 데이터 유무에 따른 동적 버튼 상태 분기 처리
+                        // 🚀 디비에서 리턴받은 불리언(True/False) 데이터를 기반으로 정확하게 UI 분기 처리
                         const shareLabel = plan.is_shared ? "공유 중 🔓" : "나만보기 🔒";
                         const shareClass = plan.is_shared ? "share-toggle-btn active" : "share-toggle-btn";
 
@@ -163,7 +163,7 @@
                                 <span class="badge time">⏳ ${plan.ai_duration_hours}h</span>
                             </div>
                             <div class="action-area">
-                                <button class="${shareClass}" onclick="toggleShare(${plan.id}, '${shareLabel}')">${shareLabel}</button>
+                                <button class="${shareClass}" onclick="toggleShare(${plan.id})">${shareLabel}</button>
                                 <div class="status-selectors">
                                     <button class="success-btn" onclick="triggerComplete(${plan.id}, 'SUCCESS')">성공</button>
                                     <button class="fail-btn" onclick="triggerComplete(${plan.id}, 'FAIL')">실패</button>
@@ -181,8 +181,8 @@
         }
     }
 
-    // 🔒 [추가] 게시판 공유 취소 / 다시 공유 실시간 전환 스크립트 엔진
-    async function toggleShare(targetId, currentLabel) {
+    // 🚀 [보정] 실시간 공유 토글 조준선 고정 및 렌더링 무조건 리드로잉 엔진
+    async function toggleShare(targetId) {
         try {
             const response = await fetch('/api/post/share/toggle/', {
                 method: 'POST',
@@ -192,14 +192,16 @@
                 },
                 body: JSON.stringify({
                     target_id: targetId,
-                    target_type: "ACTIVE" // 대시보드에 떠 있는 계획은 ACTIVE 데이터셋입니다.
+                    target_type: "ACTIVE"
                 })
             });
+
             const result = await response.json();
             alert(result.message);
 
-            if (response.status === 200) {
-                loadExistingPlans(); // 카드 UI 상태 갱신 리드로잉
+            // 🚀 [방어 코드] 200번대 성공 사인이 떨어지면 무조건 화면 리로드 가동
+            if (response.ok) {
+                loadExistingPlans();
             }
         } catch(e) {
             alert("공유 상태 전환에 실패했습니다.");

@@ -16,11 +16,9 @@
         body { font-family: 'Pretendard', sans-serif; color: var(--text-color); margin: 0; padding: 40px; display: flex; justify-content: center; }
         .box { max-width: 550px; width: 100%; border: 1px solid var(--border-color); border-radius: 8px; padding: 28px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         h1 { font-size: 22px; font-weight: 700; margin-top: 0; margin-bottom: 20px; }
-
         .search-row { display: flex; gap: 8px; margin-bottom: 24px; }
         input { flex: 1; font-family: inherit; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px; background: var(--input-bg); font-size: 14px; }
         button { font-family: inherit; padding: 10px 16px; border: none; border-radius: 4px; background: var(--primary-color); color: white; cursor: pointer; font-weight: 500; font-size: 14px; }
-
         .friend-list { display: flex; flex-direction: column; gap: 10px; }
         .friend-card {
             border: 1px solid var(--border-color); border-radius: 6px; padding: 12px 16px;
@@ -44,24 +42,42 @@
     </div>
 
     <div style="font-size: 13px; font-weight: 600; color: #787774; margin-bottom: 10px;">현재 친구 목록</div>
-    <div class="friend-list" id="friend-render-zone">
-        </div>
+    <div class="friend-list" id="friend-render-zone"></div>
 </div>
 
 <script>
     document.addEventListener("DOMContentLoaded", loadFriendsList);
 
-    // 1. 내 친구 목록 API 동적 로드 기믹
+    // 🚀 대통합 주소판 단일 정문 경로 고정
+    const TARGET_URL = '/api/user/friend/';
+
+    // 📡 [수리 완료] 브라우저 보관함에서 진짜 내 토큰 꺼내오는 헬퍼 함수
+    function getAuthHeader() {
+        const token = localStorage.getItem('access_token');
+        return token ? { 'Authorization': `Bearer ${token}` } : {};
+    }
+
+    // 1. 내 친구 목록 API 동적 로드
     async function loadFriendsList() {
         try {
-            const response = await fetch('/api/friend/manage/', {
-                headers: { 'Accept': 'application/json' }
+            const response = await fetch(TARGET_URL, {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    ...getAuthHeader() // 🚀 내 진짜 토큰 동봉
+                }
             });
+
+            if (response.status === 401) {
+                alert("인증 정보가 없습니다. 다시 로그인해 주세요.");
+                return;
+            }
+
             const data = await response.json();
             const zone = document.getElementById('friend-render-zone');
             zone.innerHTML = '';
 
-            if (data.friends.length === 0) {
+            if (!data.friends || data.friends.length === 0) {
                 zone.innerHTML = `<div style="text-align:center; padding:20px; color:#b3b3b1; font-size:13px;">아직 추가된 친구가 없습니다.</div>`;
                 return;
             }
@@ -72,9 +88,9 @@
                 card.innerHTML = `
                     <div class="friend-info">
                         <span class="friend-name">👤 ${f.username}</span>
-                        <span class="friend-email">${f.email}</span>
+                        <span class="friend-email">${f.email || '이메일 없음'}</span>
                     </div>
-                    <button class="delete-btn" onclick="deleteFriendAction(${f.id})">친구 끊기</button>
+                    <button class="delete-btn" onclick="deleteFriendAction('${f.username}')">친구 끊기</button>
                 `;
                 zone.appendChild(card);
             });
@@ -84,34 +100,43 @@
     // 2. 친구 추가 전송 핸들러
     async function addFriendAction() {
         const query = document.getElementById('query-input').value;
+        if (!query) { alert("아이디 또는 이메일을 입력해 주세요."); return; }
+
         try {
-            const response = await fetch('/api/friend/manage/', {
+            const response = await fetch(TARGET_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader() // 🚀 내 진짜 토큰 동봉
+                },
                 body: JSON.stringify({ search_query: query })
             });
+
             const result = await response.json();
             alert(result.message);
 
             if (response.status === 201) {
                 document.getElementById('query-input').value = '';
-                loadFriendsList(); # 목록 즉시 리프레시
+                loadFriendsList();
             }
         } catch(e) { alert("네트워크 오류"); }
     }
 
-    // 3. 친구 관계 해제(삭제) 핸들러
-    async function deleteFriendAction(friendUserId) {
-        if(!confirm("정말 이 친구와 관계를 끊으시겠습니까?")) return;
+    // 3. 친구 관계 해제 핸들러
+    async function deleteFriendAction(friendUsername) {
+        if(!confirm(`정말 ${friendUsername} 님과 관계를 끊으시겠습니까?`)) return;
         try {
-            const response = await fetch('/api/friend/manage/', {
+            const response = await fetch(TARGET_URL, {
                 method: 'DELETE',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ friend_user_id: friendUserId })
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...getAuthHeader() // 🚀 내 진짜 토큰 동봉
+                },
+                body: JSON.stringify({ friend_username: friendUsername })
             });
             const result = await response.json();
             alert(result.message);
-            loadFriendsList(); # 목록 즉시 리프레시
+            loadFriendsList();
         } catch(e) { alert("삭제 실패"); }
     }
 </script>
