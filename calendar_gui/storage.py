@@ -2,9 +2,23 @@
 
 import json
 import os
+import sys
 
-# 이 패키지 폴더 안에 plans.json 을 저장한다.
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "plans.json")
+
+def _base_dir() -> str:
+    """plans.json 을 저장할 폴더를 정한다.
+
+    - PyInstaller 로 만든 exe 로 실행될 때(sys.frozen): exe 파일이 있는 폴더.
+      (--onefile exe 는 임시 폴더에 풀리므로, 그 임시 폴더가 아니라
+       실제 exe 옆에 저장해야 재실행해도 계획이 유지된다.)
+    - 일반 파이썬으로 실행될 때: 이 패키지 폴더.
+    """
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+
+DATA_FILE = os.path.join(_base_dir(), "plans.json")
 
 
 def load() -> dict:
