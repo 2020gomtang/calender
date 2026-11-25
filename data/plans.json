@@ -1,0 +1,38 @@
+{
+  "2026-11-16": [
+    {
+      "text": "보안과제",
+      "cat": "etc",
+      "done": false
+    },
+    {
+      "text": "사이트 수정",
+      "cat": "etc",
+      "done": false
+    },
+    {
+      "text": "dscm 상위파일 이해",
+      "cat": "etc",
+      "done": false
+    },
+    {
+      "text": "xml 공부",
+      "cat": "etc",
+      "done": false
+    }
+  ],
+  "2026-11-17": [
+    {
+      "text": "컴파일러 과제",
+      "cat": "etc",
+      "done": false
+    }
+  ],
+  "2026-11-25": [
+    {
+      "text": "캘린더 프로그램 완성",
+      "cat": "etc",
+      "done": false
+    }
+  ]
+}

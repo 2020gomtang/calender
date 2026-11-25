@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>나의 캘린더</title>
+<style>
+  :root {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --border: #e3e8f0;
+    --text: #1f2733;
+    --muted: #8a93a3;
+    --accent: #4f7cff;
+    --accent-soft: #e9f0ff;
+    --today: #fff4e0;
+    --today-border: #ffb84d;
+    --sat: #3b82f6;
+    --sun: #ef4444;
+    --shadow: 0 6px 24px rgba(31, 39, 51, 0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Malgun Gothic", "맑은 고딕", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    -webkit-font-smoothing: antialiased;
+  }
+  .layout {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 1fr; }
+  }
+
+  /* ---- 좌측 캘린더 ---- */
+  .cal-card {
+    background: var(--panel);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 20px;
+  }
+  .cal-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .cal-title {
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.3px;
+  }
+  .cal-nav { display: flex; align-items: center; gap: 8px; }
+  button {
+    font-family: inherit;
+    cursor: pointer;
+    border: none;
+  }
+  .nav-btn {
+    width: 38px; height: 38px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 18px;
+    font-weight: 700;
+    transition: background .15s;
+  }
+  .nav-btn:hover { background: #d9e4ff; }
+  .today-btn {
+    padding: 0 14px; height: 38px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+  }
+  .today-btn:hover { background: #3c67e8; }
+
+  .weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin-bottom: 6px;
+  }
+  .weekdays div {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--muted);
+    padding: 6px 0;
+  }
+  .weekdays .sun { color: var(--sun); }
+  .weekdays .sat { color: var(--sat); }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 6px;
+  }
+  .cell {
+    position: relative;
+    min-height: 96px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 6px 7px;
+    background: #fff;
+    cursor: pointer;
+    transition: border-color .15s, box-shadow .15s;
+    overflow: hidden;
+  }
+  .cell:hover { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+  .cell.empty { background: #fafbfd; cursor: default; border-color: #eef1f6; }
+  .cell.empty:hover { box-shadow: none; }
+  .cell.today { background: var(--today); border-color: var(--today-border); }
+  .cell.selected { box-shadow: 0 0 0 2px var(--accent); border-color: var(--accent); }
+  .cell .num {
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .cell.sun .num { color: var(--sun); }
+  .cell.sat .num { color: var(--sat); }
+
+  .events { display: flex; flex-direction: column; gap: 3px; }
+  .ev {
+    font-size: 11px;
+    line-height: 1.25;
+    padding: 2px 5px;
+    border-radius: 5px;
+    color: #fff;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .more { font-size: 10px; color: var(--muted); padding-left: 2px; }
+
+  /* 카테고리 색상 */
+  .c-work  { background: #4f7cff; }
+  .c-study { background: #22a06b; }
+  .c-life  { background: #f0932b; }
+  .c-etc   { background: #9b59b6; }
+
+  /* ---- 우측 패널 ---- */
+  .side { display: flex; flex-direction: column; gap: 20px; }
+  .panel {
+    background: var(--panel);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    padding: 18px;
+  }
+  .panel h2 {
+    margin: 0 0 14px;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  .field { margin-bottom: 12px; }
+  .field label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 5px;
+    font-weight: 600;
+  }
+  input[type="text"], input[type="date"], select, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    background: #fff;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
+  textarea { resize: vertical; min-height: 60px; }
+  .cat-row { display: flex; gap: 8px; }
+  .cat-row select { flex: 1; }
+  .add-btn {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+    margin-top: 4px;
+  }
+  .add-btn:hover { background: #3c67e8; }
+
+  .detail-date {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 10px;
+  }
+  .plan-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+  .plan-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 9px 10px;
+    border-radius: 10px;
+    background: #f7f9fc;
+    border-left: 4px solid var(--accent);
+  }
+  .plan-item.c-work  { border-left-color: #4f7cff; }
+  .plan-item.c-study { border-left-color: #22a06b; }
+  .plan-item.c-life  { border-left-color: #f0932b; }
+  .plan-item.c-etc   { border-left-color: #9b59b6; }
+  .plan-main { flex: 1; min-width: 0; }
+  .plan-text { font-size: 14px; word-break: break-word; }
+  .plan-text.done { text-decoration: line-through; color: var(--muted); }
+  .plan-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .plan-chk { margin-top: 2px; width: 16px; height: 16px; cursor: pointer; }
+  .del-btn {
+    background: transparent;
+    color: var(--muted);
+    font-size: 18px;
+    line-height: 1;
+    padding: 0 4px;
+  }
+  .del-btn:hover { color: var(--sun); }
+  .empty-note { color: var(--muted); font-size: 13px; text-align: center; padding: 14px 0; }
+
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-top: 12px; }
+  .legend span { display: inline-flex; align-items: center; gap: 5px; color: var(--muted); }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
+
+  .toolbar { display: flex; gap: 8px; margin-top: 12px; }
+  .tool-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 9px;
+    background: #f0f3f9;
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+  }
+  .tool-btn:hover { background: #e6ebf4; }
+  .stat { font-size: 13px; color: var(--muted); }
+  .stat b { color: var(--text); }
+
+  /* 메모형 입력 */
+  .memo-help { margin: -6px 0 12px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+  .memo-area { min-height: 130px; font-size: 14px; line-height: 1.5; }
+  .memo-preview { margin: 10px 0 4px; display: flex; flex-direction: column; gap: 5px; }
+  .pv-line { font-size: 12px; display: flex; align-items: center; gap: 7px; padding: 5px 8px; border-radius: 8px; }
+  .pv-ok { background: #eafaf1; color: #1a7a4c; }
+  .pv-ok b { color: #10633a; }
+  .pv-bad { background: #fdeaea; color: #b23b3b; }
+  .pv-date { font-weight: 700; white-space: nowrap; }
+  .pv-cat { margin-left: auto; font-size: 11px; opacity: .8; white-space: nowrap; }
+
+  .hint-row { margin: 10px 2px 0; font-size: 12px; color: var(--muted); }
+
+  /* 주간 뷰 */
+  .week-wrap { max-width: 900px; margin: 0 auto; padding: 24px; }
+  .back-btn {
+    padding: 0 14px; height: 38px; border-radius: 10px;
+    background: var(--accent-soft); color: var(--accent);
+    font-weight: 600; font-size: 14px;
+  }
+  .back-btn:hover { background: #d9e4ff; }
+  /* 세로로 쭉 쌓이는 날짜 띠 */
+  .week-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .day-col {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: #fbfcfe;
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    overflow: hidden;
+  }
+  @media (max-width: 560px) { .day-col { grid-template-columns: 1fr; } }
+  .day-col.today { border-color: var(--today-border); box-shadow: 0 0 0 2px var(--today); }
+  .day-head {
+    padding: 14px 16px;
+    border-right: 1px solid var(--border);
+    background: #fff;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 2px;
+  }
+  @media (max-width: 560px) {
+    .day-head { border-right: none; border-bottom: 1px solid var(--border); flex-direction: row; align-items: baseline; gap: 8px; }
+  }
+  .day-head .dnum { font-size: 22px; font-weight: 700; }
+  .day-head .ddow { font-size: 13px; color: var(--muted); }
+  .day-head.sun .dnum, .day-head.sun .ddow { color: var(--sun); }
+  .day-head.sat .dnum, .day-head.sat .ddow { color: var(--sat); }
+  .day-head .cnt { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .day-right { display: flex; flex-direction: column; min-width: 0; }
+  .day-body { flex: 1; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-height: 48px; }
+  .wk-item {
+    display: flex; align-items: flex-start; gap: 9px;
+    padding: 9px 11px; border-radius: 8px;
+    background: #fff; border-left: 4px solid var(--accent);
+    font-size: 14px;
+  }
+  .wk-item.c-work  { border-left-color: #4f7cff; }
+  .wk-item.c-study { border-left-color: #22a06b; }
+  .wk-item.c-life  { border-left-color: #f0932b; }
+  .wk-item.c-etc   { border-left-color: #9b59b6; }
+  .wk-item .wtext { flex: 1; word-break: break-word; line-height: 1.4; }
+  .wk-item .wtext.done { text-decoration: line-through; color: var(--muted); }
+  .wk-item .wchk { margin-top: 3px; width: 16px; height: 16px; cursor: pointer; }
+  .wk-item .wdel {
+    background: transparent; color: var(--muted); font-size: 17px; line-height: 1; padding: 0 3px;
+  }
+  .wk-item .wdel:hover { color: var(--sun); }
+  .day-empty { font-size: 13px; color: #c0c6d0; padding: 6px 2px; }
+  .day-add {
+    display: flex; gap: 8px; padding: 10px; border-top: 1px dashed var(--border);
+  }
+  .day-add input {
+    flex: 1; padding: 9px 11px; font-size: 14px;
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .day-add button {
+    width: 40px; border-radius: 8px; background: var(--accent); color: #fff;
+    font-size: 20px; font-weight: 700;
+  }
+  .day-add button:hover { background: #3c67e8; }
+</style>
+</head>
+<body>
+  <div class="layout" id="monthLayout">
+    <!-- 캘린더 -->
+    <div class="cal-card">
+      <div class="cal-top">
+        <div class="cal-title" id="calTitle">2026년 11월</div>
+        <div class="cal-nav">
+          <button class="nav-btn" id="prevBtn" title="이전 달">‹</button>
+          <button class="today-btn" id="todayBtn">오늘</button>
+          <button class="nav-btn" id="nextBtn" title="다음 달">›</button>
+        </div>
+      </div>
+      <div class="weekdays">
+        <div class="sun">일</div><div>월</div><div>화</div><div>수</div>
+        <div>목</div><div>금</div><div class="sat">토</div>
+      </div>
+      <div class="grid" id="grid"></div>
+      <p class="hint-row">날짜를 클릭하면 그 주 전체 계획을 볼 수 있어요.</p>
+      <div class="legend">
+        <span><i class="dot c-work"></i>업무</span>
+        <span><i class="dot c-study"></i>공부</span>
+        <span><i class="dot c-life"></i>생활</span>
+        <span><i class="dot c-etc"></i>기타</span>
+      </div>
+      <div class="toolbar">
+        <button class="tool-btn" id="exportBtn">내보내기(JSON)</button>
+        <button class="tool-btn" id="importBtn">가져오기(JSON)</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+      </div>
+    </div>
+
+    <!-- 사이드 패널 -->
+    <div class="side">
+      <!-- 메모형 입력 -->
+      <div class="panel">
+        <h2>메모로 추가</h2>
+        <p class="memo-help">날짜와 내용을 자유롭게 줄마다 쓰면 알아서 캘린더에 넣어요.</p>
+        <div class="field">
+          <textarea id="memoText" class="memo-area" placeholder="11/16&#10;- 보안과제 [공부]&#10;- xml 공부&#10;2026-11-17 컴파일러 과제&#10;오늘 운동 1시간 [생활]&#10;내일 장보기&#10;12월 25일 크리스마스"></textarea>
+        </div>
+        <div id="memoPreview" class="memo-preview"></div>
+        <button class="add-btn" id="memoAddBtn">메모 한번에 추가</button>
+      </div>
+
+      <!-- 입력 (상세) -->
+      <div class="panel">
+        <h2>하나씩 추가</h2>
+        <div class="field">
+          <label for="inpDate">날짜</label>
+          <input type="date" id="inpDate" />
+        </div>
+        <div class="field">
+          <label for="inpText">내용</label>
+          <textarea id="inpText" placeholder="예: 보안과제 제출, 운동 1시간..."></textarea>
+        </div>
+        <div class="field">
+          <label for="inpCat">분류</label>
+          <div class="cat-row">
+            <select id="inpCat">
+              <option value="work">업무</option>
+              <option value="study">공부</option>
+              <option value="life">생활</option>
+              <option value="etc">기타</option>
+            </select>
+          </div>
+        </div>
+        <button class="add-btn" id="addBtn">캘린더에 추가</button>
+      </div>
+
+      <!-- 선택한 날짜 상세 -->
+      <div class="panel">
+        <h2>날짜별 계획</h2>
+        <div class="detail-date" id="detailDate">날짜를 선택하세요</div>
+        <ul class="plan-list" id="planList"></ul>
+      </div>
+
+      <!-- 이번 달 요약 -->
+      <div class="panel">
+        <h2>이번 달 요약</h2>
+        <div class="stat" id="monthStat">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 주간 뷰 -->
+  <div class="week-wrap" id="weekLayout" style="display:none;">
+    <div class="cal-card">
+      <div class="cal-top">
+        <button class="back-btn" id="weekBackBtn">‹ 월간으로</button>
+        <div class="cal-title" id="weekTitle">주간</div>
+        <div class="cal-nav">
+          <button class="nav-btn" id="weekPrevBtn" title="지난 주">‹</button>
+          <button class="today-btn" id="weekTodayBtn">이번 주</button>
+          <button class="nav-btn" id="weekNextBtn" title="다음 주">›</button>
+        </div>
+      </div>
+      <div class="week-grid" id="weekGrid"></div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "my_calendar_plans_v1";
+  var CAT_LABEL = { work: "업무", study: "공부", life: "생활", etc: "기타" };
+
+  // 서버(server.py)를 통해 열렸으면 파일에 저장, 아니면 localStorage 사용.
+  var useServer = location.protocol === "http:" || location.protocol === "https:";
+
+  // 데이터 형식:
+  // { "2026-11-16": [ {text, cat, done}, ... ] }
+  var plans = {};
+
+  var now = new Date();
+  var viewYear = now.getFullYear();
+  var viewMonth = now.getMonth(); // 0-11
+  var selectedKey = pad(now.getFullYear()) + "-" + pad(now.getMonth() + 1) + "-" + pad(now.getDate());
+
+  // ---- 데이터 정규화 (구버전 문자열 배열도 받아들임) ----
+  function normalize(data) {
+    if (!data || typeof data !== "object") return {};
+    Object.keys(data).forEach(function (k) {
+      if (!Array.isArray(data[k])) { delete data[k]; return; }
+      data[k] = data[k].map(function (item) {
+        if (typeof item === "string") return { text: item, cat: "etc", done: false };
+        return { text: item.text, cat: item.cat || "etc", done: !!item.done };
+      });
+    });
+    return data;
+  }
+
+  // ---- 저장소: 서버 또는 localStorage ----
+  function loadPlans() {
+    if (useServer) {
+      return fetch("/api/plans")
+        .then(function (r) { return r.json(); })
+        .then(function (data) { return normalize(data); })
+        .catch(function () { return {}; });
+    }
+    // 파일로 직접 열었을 때: localStorage
+    return new Promise(function (resolve) {
+      try {
+        var raw = localStorage.getItem(STORAGE_KEY);
+        resolve(raw ? normalize(JSON.parse(raw)) : {});
+      } catch (e) { resolve({}); }
+    });
+  }
+
+  function savePlans() {
+    if (useServer) {
+      fetch("/api/plans", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(plans)
+      }).catch(function () {
+        alert("저장 실패: 서버 연결을 확인하세요.");
+      });
+    } else {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(plans));
+    }
+  }
+
+  // ---- 유틸 ----
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function keyOf(y, m, d) { return pad(y).padStart(4, "0") + "-" + pad(m) + "-" + pad(d); }
+  function todayKey() {
+    var t = new Date();
+    return keyOf(t.getFullYear(), t.getMonth() + 1, t.getDate());
+  }
+
+  // ---- 캘린더 렌더링 ----
+  function render() {
+    document.getElementById("calTitle").textContent = viewYear + "년 " + (viewMonth + 1) + "월";
+    var grid = document.getElementById("grid");
+    grid.innerHTML = "";
+
+    var first = new Date(viewYear, viewMonth, 1);
+    var startDay = first.getDay(); // 0=일
+    var daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+
+    // 앞쪽 빈칸
+    for (var i = 0; i < startDay; i++) {
+      var blank = document.createElement("div");
+      blank.className = "cell empty";
+      grid.appendChild(blank);
+    }
+
+    var tKey = todayKey();
+    for (var d = 1; d <= daysInMonth; d++) {
+      var key = keyOf(viewYear, viewMonth + 1, d);
+      var dow = new Date(viewYear, viewMonth, d).getDay();
+      var cell = document.createElement("div");
+      cell.className = "cell";
+      if (dow === 0) cell.className += " sun";
+      if (dow === 6) cell.className += " sat";
+      if (key === tKey) cell.className += " today";
+      if (key === selectedKey) cell.className += " selected";
+      cell.dataset.key = key;
+
+      var num = document.createElement("div");
+      num.className = "num";
+      num.textContent = d;
+      cell.appendChild(num);
+
+      var list = plans[key] || [];
+      if (list.length) {
+        var evWrap = document.createElement("div");
+        evWrap.className = "events";
+        var show = list.slice(0, 3);
+        show.forEach(function (p) {
+          var ev = document.createElement("div");
+          ev.className = "ev c-" + (p.cat || "etc");
+          ev.textContent = p.text;
+          ev.title = p.text;
+          evWrap.appendChild(ev);
+        });
+        if (list.length > 3) {
+          var more = document.createElement("div");
+          more.className = "more";
+          more.textContent = "+" + (list.length - 3) + " 더보기";
+          evWrap.appendChild(more);
+        }
+        cell.appendChild(evWrap);
+      }
+
+      cell.addEventListener("click", onCellClick);
+      grid.appendChild(cell);
+    }
+
+    renderDetail();
+    renderMonthStat();
+  }
+
+  function onCellClick(e) {
+    var key = e.currentTarget.dataset.key;
+    if (!key) return;
+    selectedKey = key;
+    document.getElementById("inpDate").value = key;
+    openWeek(key);
+  }
+
+  // ---- 선택 날짜 상세 ----
+  function renderDetail() {
+    var el = document.getElementById("detailDate");
+    var listEl = document.getElementById("planList");
+    listEl.innerHTML = "";
+
+    if (!selectedKey) {
+      el.textContent = "날짜를 선택하세요";
+      return;
+    }
+    var parts = selectedKey.split("-");
+    var dObj = new Date(+parts[0], +parts[1] - 1, +parts[2]);
+    var dowName = ["일", "월", "화", "수", "목", "금", "토"][dObj.getDay()];
+    el.textContent = parts[0] + "." + parts[1] + "." + parts[2] + " (" + dowName + ")";
+
+    var list = plans[selectedKey] || [];
+    if (!list.length) {
+      var note = document.createElement("div");
+      note.className = "empty-note";
+      note.textContent = "등록된 계획이 없습니다.";
+      listEl.appendChild(note);
+      return;
+    }
+
+    list.forEach(function (p, idx) {
+      var li = document.createElement("li");
+      li.className = "plan-item c-" + (p.cat || "etc");
+
+      var chk = document.createElement("input");
+      chk.type = "checkbox";
+      chk.className = "plan-chk";
+      chk.checked = !!p.done;
+      chk.addEventListener("change", function () {
+        plans[selectedKey][idx].done = chk.checked;
+        savePlans();
+        render();
+      });
+
+      var main = document.createElement("div");
+      main.className = "plan-main";
+      var txt = document.createElement("div");
+      txt.className = "plan-text" + (p.done ? " done" : "");
+      txt.textContent = p.text;
+      var meta = document.createElement("div");
+      meta.className = "plan-meta";
+      meta.textContent = CAT_LABEL[p.cat] || "기타";
+      main.appendChild(txt);
+      main.appendChild(meta);
+
+      var del = document.createElement("button");
+      del.className = "del-btn";
+      del.innerHTML = "&times;";
+      del.title = "삭제";
+      del.addEventListener("click", function () {
+        plans[selectedKey].splice(idx, 1);
+        if (!plans[selectedKey].length) delete plans[selectedKey];
+        savePlans();
+        render();
+      });
+
+      li.appendChild(chk);
+      li.appendChild(main);
+      li.appendChild(del);
+      listEl.appendChild(li);
+    });
+  }
+
+  // ---- 이번 달 요약 ----
+  function renderMonthStat() {
+    var prefix = pad(viewYear).padStart(4, "0") + "-" + pad(viewMonth + 1) + "-";
+    var total = 0, done = 0, days = 0;
+    Object.keys(plans).forEach(function (k) {
+      if (k.indexOf(prefix) === 0) {
+        days++;
+        plans[k].forEach(function (p) {
+          total++;
+          if (p.done) done++;
+        });
+      }
+    });
+    var el = document.getElementById("monthStat");
+    if (!total) {
+      el.innerHTML = "이번 달 계획이 없습니다.";
+    } else {
+      var rate = Math.round((done / total) * 100);
+      el.innerHTML = "계획 있는 날 <b>" + days + "일</b> · 총 <b>" + total +
+        "건</b> · 완료 <b>" + done + "건</b> (" + rate + "%)";
+    }
+  }
+
+  // ---- 계획 추가 ----
+  function addPlan() {
+    var dateVal = document.getElementById("inpDate").value;
+    var text = document.getElementById("inpText").value.trim();
+    var cat = document.getElementById("inpCat").value;
+
+    if (!dateVal) { alert("날짜를 선택하세요."); return; }
+    if (!text) { alert("내용을 입력하세요."); return; }
+
+    // 여러 줄 입력 시 줄마다 하나의 계획으로 추가
+    var lines = text.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
+    if (!plans[dateVal]) plans[dateVal] = [];
+    lines.forEach(function (line) {
+      plans[dateVal].push({ text: line, cat: cat, done: false });
+    });
+    savePlans();
+
+    // 추가한 날짜로 뷰 이동 + 선택
+    var p = dateVal.split("-");
+    viewYear = +p[0];
+    viewMonth = +p[1] - 1;
+    selectedKey = dateVal;
+
+    document.getElementById("inpText").value = "";
+    render();
+  }
+
+  // ---- 메모형 파싱 ----
+  // 줄마다 날짜를 인식한다. 날짜 없는 줄은 바로 위에서 인식된 날짜에 묶인다.
+  // 지원 형식 예: "11/16", "2026-11-17", "12월 25일", "오늘", "내일", "모레"
+  var MONTH_NAMES = ["일", "월", "화", "수", "목", "금", "토"]; // (사용 안 함, 참고용)
+
+  function parseCatTag(text) {
+    // 줄 끝/중간의 [공부] [업무] [생활] [기타] 태그를 뽑아낸다.
+    var cat = null;
+    var map = { "업무": "work", "일": "work", "공부": "study", "학습": "study",
+                "생활": "life", "기타": "etc",
+                "work": "work", "study": "study", "life": "life", "etc": "etc" };
+    var cleaned = text.replace(/\[([^\]]+)\]/g, function (m, g) {
+      var key = g.trim().toLowerCase();
+      var k2 = g.trim();
+      if (map[k2] !== undefined) { cat = map[k2]; return ""; }
+      if (map[key] !== undefined) { cat = map[key]; return ""; }
+      return m; // 분류 태그가 아니면 그대로 둠
+    });
+    return { text: cleaned.trim(), cat: cat };
+  }
+
+  function relativeDate(word) {
+    var t = new Date();
+    if (word === "오늘") { /* 그대로 */ }
+    else if (word === "내일") t.setDate(t.getDate() + 1);
+    else if (word === "모레") t.setDate(t.getDate() + 2);
+    else if (word === "어제") t.setDate(t.getDate() - 1);
+    else return null;
+    return keyOf(t.getFullYear(), t.getMonth() + 1, t.getDate());
+  }
+
+  // 한 줄에서 날짜 부분과 나머지 내용을 분리해 돌려준다.
+  // 성공: { key, rest }   날짜 못 찾음: { key: null, rest: 원문 }
+  function parseDateFromLine(line) {
+    var s = line.trim();
+    // 선행 불릿 제거
+    s = s.replace(/^[-*•·]\s*/, "");
+
+    // 연도 생략 시 현재 보고 있는 달의 연도를 쓴다.
+    var nowY = viewYear;
+    var m;
+
+    // 상대 날짜 (오늘/내일/모레/어제)
+    m = s.match(/^(오늘|내일|모레|어제)\s*[:\-]?\s*(.*)$/);
+    if (m) {
+      var rk = relativeDate(m[1]);
+      if (rk) return { key: rk, rest: m[2] };
+    }
+
+    // YYYY-MM-DD / YYYY.MM.DD / YYYY/MM/DD
+    m = s.match(/^(\d{4})[.\-/](\d{1,2})[.\-/](\d{1,2})\s*[:\-]?\s*(.*)$/);
+    if (m) return mk(+m[1], +m[2], +m[3], m[4]);
+
+    // MM-DD / MM.DD / MM/DD  (연도 생략 → 올해)
+    m = s.match(/^(\d{1,2})[.\-/](\d{1,2})\s*[:\-]?\s*(.*)$/);
+    if (m) return mk(nowY, +m[1], +m[2], m[3]);
+
+    // "12월 25일" / "11월 16일" (연도 생략 → 올해), 앞에 연도 올 수도
+    m = s.match(/^(?:(\d{4})\s*년\s*)?(\d{1,2})\s*월\s*(\d{1,2})\s*일?\s*[:\-]?\s*(.*)$/);
+    if (m) return mk(m[1] ? +m[1] : nowY, +m[2], +m[3], m[4]);
+
+    return { key: null, rest: line.trim().replace(/^[-*•·]\s*/, "") };
+
+    function mk(y, mo, d, rest) {
+      if (mo < 1 || mo > 12 || d < 1 || d > 31) return { key: null, rest: line.trim() };
+      return { key: keyOf(y, mo, d), rest: (rest || "").trim() };
+    }
+  }
+
+  // 메모 전체를 파싱해서 [{key, text, cat, ok}] 리스트로 돌려준다.
+  function parseMemo(raw) {
+    var lines = raw.split("\n");
+    var result = [];
+    var currentKey = null;
+    lines.forEach(function (ln) {
+      if (!ln.trim()) return;
+      var pr = parseDateFromLine(ln);
+      if (pr.key) {
+        currentKey = pr.key;
+        if (pr.rest) {
+          var c = parseCatTag(pr.rest);
+          if (c.text) result.push({ key: currentKey, text: c.text, cat: c.cat || "etc", ok: true });
+        }
+      } else {
+        // 날짜가 없는 줄: 직전 날짜에 묶기
+        var c2 = parseCatTag(pr.rest);
+        if (!c2.text) return;
+        if (currentKey) {
+          result.push({ key: currentKey, text: c2.text, cat: c2.cat || "etc", ok: true });
+        } else {
+          result.push({ key: null, text: c2.text, cat: c2.cat || "etc", ok: false });
+        }
+      }
+    });
+    return result;
+  }
+
+  function renderMemoPreview() {
+    var raw = document.getElementById("memoText").value;
+    var box = document.getElementById("memoPreview");
+    box.innerHTML = "";
+    if (!raw.trim()) return;
+    var items = parseMemo(raw);
+    items.forEach(function (it) {
+      var row = document.createElement("div");
+      row.className = "pv-line " + (it.ok ? "pv-ok" : "pv-bad");
+      if (it.ok) {
+        var p = it.key.split("-");
+        row.innerHTML = '<span class="pv-date">' + p[1] + '/' + p[2] + '</span>' +
+          '<span>' + escapeHtml(it.text) + '</span>' +
+          '<span class="pv-cat">' + (CAT_LABEL[it.cat] || "기타") + '</span>';
+      } else {
+        row.innerHTML = '<span>⚠ 날짜를 못 찾음: ' + escapeHtml(it.text) + '</span>';
+      }
+      box.appendChild(row);
+    });
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+
+  function addMemo() {
+    var raw = document.getElementById("memoText").value;
+    if (!raw.trim()) { alert("메모 내용을 입력하세요."); return; }
+    var items = parseMemo(raw);
+    var added = 0, skipped = 0, lastKey = null;
+    items.forEach(function (it) {
+      if (!it.ok) { skipped++; return; }
+      if (!plans[it.key]) plans[it.key] = [];
+      plans[it.key].push({ text: it.text, cat: it.cat, done: false });
+      added++;
+      lastKey = it.key;
+    });
+    if (!added) { alert("추가할 계획을 찾지 못했습니다. 날짜 형식을 확인하세요."); return; }
+    savePlans();
+
+    if (lastKey) {
+      var p = lastKey.split("-");
+      viewYear = +p[0];
+      viewMonth = +p[1] - 1;
+      selectedKey = lastKey;
+    }
+    document.getElementById("memoText").value = "";
+    renderMemoPreview();
+    render();
+
+    var msg = added + "건 추가됨";
+    if (skipped) msg += " (날짜 없는 " + skipped + "건은 건너뜀)";
+    // 조용히 알리기: 하단 요약 쪽에 잠깐 표시
+    flash(msg);
+  }
+
+  var flashTimer = null;
+  function flash(msg) {
+    var el = document.getElementById("monthStat");
+    var prev = el.innerHTML;
+    el.innerHTML = "✓ " + msg;
+    el.style.color = "#1a7a4c";
+    clearTimeout(flashTimer);
+    flashTimer = setTimeout(function () {
+      el.style.color = "";
+      renderMonthStat();
+    }, 2500);
+  }
+
+  // ==== 주간 뷰 ====
+  var weekStart = null; // 그 주 일요일의 Date 객체
+
+  function startOfWeek(dateObj) {
+    var d = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate());
+    d.setDate(d.getDate() - d.getDay()); // 일요일로
+    return d;
+  }
+
+  function openWeek(key) {
+    var p = key.split("-");
+    weekStart = startOfWeek(new Date(+p[0], +p[1] - 1, +p[2]));
+    document.getElementById("monthLayout").style.display = "none";
+    document.getElementById("weekLayout").style.display = "block";
+    renderWeek();
+    window.scrollTo(0, 0);
+  }
+
+  function closeWeek() {
+    document.getElementById("weekLayout").style.display = "none";
+    document.getElementById("monthLayout").style.display = "grid";
+    render();
+  }
+
+  function renderWeek() {
+    if (!weekStart) return;
+    var end = new Date(weekStart);
+    end.setDate(end.getDate() + 6);
+    document.getElementById("weekTitle").textContent =
+      fmt(weekStart) + " ~ " + fmt(end);
+
+    var grid = document.getElementById("weekGrid");
+    grid.innerHTML = "";
+    var tKey = todayKey();
+    var dowNames = ["일", "월", "화", "수", "목", "금", "토"];
+
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(weekStart);
+      d.setDate(d.getDate() + i);
+      var key = keyOf(d.getFullYear(), d.getMonth() + 1, d.getDate());
+      var list = plans[key] || [];
+
+      var col = document.createElement("div");
+      col.className = "day-col" + (key === tKey ? " today" : "");
+
+      // 헤더 (왼쪽)
+      var head = document.createElement("div");
+      head.className = "day-head" + (i === 0 ? " sun" : i === 6 ? " sat" : "");
+      head.innerHTML = '<span class="dnum">' + d.getDate() + '</span>' +
+        '<span class="ddow">' + (d.getMonth() + 1) + '월 ' + dowNames[i] + '요일</span>' +
+        (list.length ? '<span class="cnt">' + list.length + '건</span>' : '');
+      col.appendChild(head);
+
+      // 오른쪽 영역 (목록 + 추가)
+      var right = document.createElement("div");
+      right.className = "day-right";
+
+      var body = document.createElement("div");
+      body.className = "day-body";
+      if (!list.length) {
+        var em = document.createElement("div");
+        em.className = "day-empty";
+        em.textContent = "계획 없음";
+        body.appendChild(em);
+      } else {
+        list.forEach(function (pItem, idx) {
+          body.appendChild(makeWeekItem(key, pItem, idx));
+        });
+      }
+      right.appendChild(body);
+      right.appendChild(makeDayAdd(key));
+      col.appendChild(right);
+      grid.appendChild(col);
+    }
+  }
+
+  function makeWeekItem(key, pItem, idx) {
+    var row = document.createElement("div");
+    row.className = "wk-item c-" + (pItem.cat || "etc");
+
+    var chk = document.createElement("input");
+    chk.type = "checkbox";
+    chk.className = "wchk";
+    chk.checked = !!pItem.done;
+    chk.addEventListener("change", function () {
+      plans[key][idx].done = chk.checked;
+      savePlans();
+      renderWeek();
+    });
+
+    var txt = document.createElement("div");
+    txt.className = "wtext" + (pItem.done ? " done" : "");
+    txt.textContent = pItem.text;
+
+    var del = document.createElement("button");
+    del.className = "wdel";
+    del.innerHTML = "&times;";
+    del.title = "삭제";
+    del.addEventListener("click", function () {
+      plans[key].splice(idx, 1);
+      if (!plans[key].length) delete plans[key];
+      savePlans();
+      renderWeek();
+    });
+
+    row.appendChild(chk);
+    row.appendChild(txt);
+    row.appendChild(del);
+    return row;
+  }
+
+  function makeDayAdd(key) {
+    var wrap = document.createElement("div");
+    wrap.className = "day-add";
+    var inp = document.createElement("input");
+    inp.type = "text";
+    inp.placeholder = "계획 추가...";
+    var btn = document.createElement("button");
+    btn.innerHTML = "+";
+    btn.title = "추가";
+
+    function doAdd() {
+      var v = inp.value.trim();
+      if (!v) return;
+      // [분류] 태그가 있으면 반영
+      var parsed = parseCatTag(v);
+      if (!plans[key]) plans[key] = [];
+      plans[key].push({ text: parsed.text || v, cat: parsed.cat || "etc", done: false });
+      savePlans();
+      inp.value = "";
+      renderWeek();
+    }
+    btn.addEventListener("click", doAdd);
+    inp.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") { e.preventDefault(); doAdd(); }
+    });
+
+    wrap.appendChild(inp);
+    wrap.appendChild(btn);
+    return wrap;
+  }
+
+  function fmt(d) {
+    return (d.getMonth() + 1) + "." + d.getDate();
+  }
+
+  function exportJSON() {
+    var blob = new Blob([JSON.stringify(plans, null, 2)], { type: "application/json" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = "plans.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+  function importJSON(file) {
+    var reader = new FileReader();
+    reader.onload = function () {
+      try {
+        var data = normalize(JSON.parse(reader.result));
+        Object.keys(data).forEach(function (k) {
+          plans[k] = (plans[k] || []).concat(data[k]);
+        });
+        savePlans();
+        render();
+        alert("가져오기 완료");
+      } catch (e) {
+        alert("올바른 JSON 파일이 아닙니다.");
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  // ---- 이벤트 바인딩 ----
+  document.getElementById("prevBtn").addEventListener("click", function () {
+    viewMonth--; if (viewMonth < 0) { viewMonth = 11; viewYear--; } render();
+  });
+  document.getElementById("nextBtn").addEventListener("click", function () {
+    viewMonth++; if (viewMonth > 11) { viewMonth = 0; viewYear++; } render();
+  });
+  document.getElementById("todayBtn").addEventListener("click", function () {
+    var t = new Date();
+    viewYear = t.getFullYear(); viewMonth = t.getMonth();
+    selectedKey = todayKey();
+    document.getElementById("inpDate").value = selectedKey;
+    render();
+  });
+  document.getElementById("addBtn").addEventListener("click", addPlan);
+
+  // 주간 뷰 네비게이션
+  document.getElementById("weekBackBtn").addEventListener("click", closeWeek);
+  document.getElementById("weekPrevBtn").addEventListener("click", function () {
+    weekStart.setDate(weekStart.getDate() - 7); renderWeek();
+  });
+  document.getElementById("weekNextBtn").addEventListener("click", function () {
+    weekStart.setDate(weekStart.getDate() + 7); renderWeek();
+  });
+  document.getElementById("weekTodayBtn").addEventListener("click", function () {
+    weekStart = startOfWeek(new Date()); renderWeek();
+  });
+  document.getElementById("memoAddBtn").addEventListener("click", addMemo);
+  document.getElementById("memoText").addEventListener("input", renderMemoPreview);
+  document.getElementById("memoText").addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addMemo(); }
+  });
+  document.getElementById("inpText").addEventListener("keydown", function (e) {
+    // Ctrl+Enter 로 빠르게 추가
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); addPlan(); }
+  });
+  document.getElementById("exportBtn").addEventListener("click", exportJSON);
+  document.getElementById("importBtn").addEventListener("click", function () {
+    document.getElementById("importFile").click();
+  });
+  document.getElementById("importFile").addEventListener("change", function (e) {
+    if (e.target.files[0]) importJSON(e.target.files[0]);
+    e.target.value = "";
+  });
+
+  // ---- 초기화 ----
+  document.getElementById("inpDate").value = selectedKey;
+  loadPlans().then(function (data) {
+    plans = data;
+    render();
+  });
+})();
+</script>
+</body>
+</html>
